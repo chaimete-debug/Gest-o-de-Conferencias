@@ -1,0 +1,9 @@
+{
+  "name": "Conferência de Mulheres Nazarenas",
+  "short_name": "CMNM",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f4f7",
+  "theme_color": "#4c1d5f",
+  "icons": []
+}
