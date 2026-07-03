@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cmnm-v8-api-hotfix';
+const CACHE_NAME = 'cmnm-v9-phase2-views-hotfix';
 const ASSETS = [
   './',
   './index.html',
