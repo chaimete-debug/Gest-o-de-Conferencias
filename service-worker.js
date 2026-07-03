@@ -1,5 +1,17 @@
-const CACHE='cmnm-v5';
-const ASSETS=['/','/index.html','/css/app.css','/js/config.js','/js/sandbox.js','/js/api.js','/js/ui.js','/js/auth.js','/js/dashboard.js','/js/conference.js','/js/participants.js','/js/payments.js','/js/sessions.js','/js/intervenients.js','/js/users.js','/js/app.js'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return r;}).catch(()=>caches.match(e.request)));});
+const CACHE='cmnm-v6-phase2';
+const ASSETS=[
+  '/','/index.html','/css/app.css','/manifest.json',
+  '/js/config.js','/js/sandbox.js','/js/api.js','/js/ui.js','/js/auth.js','/js/scanner.js',
+  '/js/dashboard.js','/js/conference.js','/js/participants.js','/js/credentials.js','/js/attendance.js','/js/materials.js',
+  '/js/payments.js','/js/sessions.js','/js/intervenients.js','/js/users.js','/js/app.js'
+];
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',event=>{
+  if(event.request.method!=='GET')return;
+  event.respondWith(fetch(event.request).then(response=>{
+    const copy=response.clone();
+    caches.open(CACHE).then(cache=>cache.put(event.request,copy));
+    return response;
+  }).catch(()=>caches.match(event.request).then(response=>response||caches.match('/index.html'))));
+});
