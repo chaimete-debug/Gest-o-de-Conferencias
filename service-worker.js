@@ -1,17 +1,53 @@
-const CACHE='cmnm-v6-phase2';
-const ASSETS=[
-  '/','/index.html','/css/app.css','/manifest.json',
-  '/js/config.js','/js/sandbox.js','/js/api.js','/js/ui.js','/js/auth.js','/js/scanner.js',
-  '/js/dashboard.js','/js/conference.js','/js/participants.js','/js/credentials.js','/js/attendance.js','/js/materials.js',
-  '/js/payments.js','/js/sessions.js','/js/intervenients.js','/js/users.js','/js/app.js'
+const CACHE_NAME = 'cmnm-v7-phase2-logistics';
+const ASSETS = [
+  './',
+  './index.html',
+  './css/app.css',
+  './manifest.json',
+  './js/config.js',
+  './js/ui.js',
+  './js/api.js',
+  './js/sandbox.js',
+  './js/auth.js',
+  './js/dashboard.js',
+  './js/conference.js',
+  './js/participants.js',
+  './js/payments.js',
+  './js/sessions.js',
+  './js/intervenients.js',
+  './js/users.js',
+  './js/scanner.js',
+  './js/credentials.js',
+  './js/attendance.js',
+  './js/materials.js',
+  './js/accommodations.js',
+  './js/meals.js',
+  './js/transport.js',
+  './js/certificates.js',
+  './js/app.js'
 ];
-self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
-self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
-self.addEventListener('fetch',event=>{
-  if(event.request.method!=='GET')return;
-  event.respondWith(fetch(event.request).then(response=>{
-    const copy=response.clone();
-    caches.open(CACHE).then(cache=>cache.put(event.request,copy));
-    return response;
-  }).catch(()=>caches.match(event.request).then(response=>response||caches.match('/index.html'))));
+
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+  event.respondWith(
+    fetch(event.request)
+      .then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(event.request).then(hit => hit || caches.match('./index.html')))
+  );
 });
