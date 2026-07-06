@@ -24,7 +24,9 @@
     mealDeliveries:[{id_entrega_refeicao:'ERF-1',id_refeicao:'REF-1',id_inscricao:'INS-3',data_hora:new Date().toISOString(),observacoes:''}],
     transports:[{id_transporte:'TRA-1',id_conferencia:'CONF-DEMO',rota:'Maputo — Matola',ponto_partida:'Maputo Central',destino:'Local da conferência',data:date(20),hora:'07:00',viatura:'Autocarro 30 lugares',matricula:'ABC-12-34',motorista:'João Cossa',telefone:'840000020',capacidade:30,estado:'CONFIRMADO',observacoes:''}],
     transportAssignments:[{id_atribuicao:'ATR-1',id_transporte:'TRA-1',id_inscricao:'INS-2',ponto_embarque:'Maputo Central',estado:'ATRIBUIDA',observacoes:''}],
-    certificates:[]
+    certificates:[],
+    settings:{app_name:'Gestão da Conferência de Mulheres Nazarenas de Moçambique',short_name:'Mulheres Nazarenas',organization:'Igreja do Nazareno',logo_url:'',primary_color:'#4c1d5f',accent_color:'#c0266d',support_email:'',support_phone:'',footer_text:'Igreja do Nazareno — Mulheres Nazarenas de Moçambique',frontend_url:location.origin,version:'2.6.0'},
+    backups:[],backupConfig:{enabled:false,frequency:'SEMANAL',hour:3,weekday:'SEGUNDA',folder_id:'',retention_days:90}
   };
   function load(){const raw=localStorage.getItem(KEY);if(raw)return JSON.parse(raw);localStorage.setItem(KEY,JSON.stringify(initial));return JSON.parse(JSON.stringify(initial));}
   function save(db){localStorage.setItem(KEY,JSON.stringify(db));}
@@ -37,7 +39,8 @@
     db.meals=db.meals||[]; db.mealDeliveries=db.mealDeliveries||[];
     db.transports=db.transports||[]; db.transportAssignments=db.transportAssignments||[]; db.certificates=db.certificates||[];
     db.participants.forEach((p,index)=>{p.codigo_qr=p.codigo_qr||p.numero_inscricao;p.credencial_entregue=Boolean(p.credencial_entregue);if(index===0&&!p.necessidades_alimentares)p.necessidades_alimentares='Sem lactose';});
-    if(action==='system.health')return{app:'Sandbox',version:'1.0.0',status:'online'};
+    if(action==='system.health')return{app:'Sandbox',version:'2.6.0',status:'online'};
+    if(action==='system.publicSettings')return db.settings||initial.settings;
     if(action==='auth.login'){if(data.username==='admin'&&data.password==='admin')return{token:'sandbox-token',expiresAt:date(1),user:db.users[0],permissions:['*']};throw new Error('Utilizador ou palavra-passe inválidos.');}
     if(action==='auth.me')return{user:db.users[0],permissions:['*']}; if(action==='auth.logout')return{loggedOut:true};
     if(action==='lookups.get')return{districts:db.districts,churches:db.churches,categories:db.categories,chargeTypes:db.chargeTypes,profiles:db.profiles,conferences:db.conferences,intervenients:db.intervenients,selectedConferenceId:db.conferences[0]?.id_conferencia||''};
@@ -202,6 +205,14 @@
     if(action==='closure.close'){db.closures=db.closures||[];const conf=db.conferences.find(x=>x.id_conferencia===data.id_conferencia);conf.estado='CONCLUIDA';const c={id_encerramento:'ENC-'+Date.now(),id_conferencia:data.id_conferencia,estado:'ENCERRADA',encerrado_em:new Date().toISOString(),justificacao:data.justificacao||''};db.closures.push(c);save(db);return{closed:true,closure:c};}
     if(action==='closure.reopen'){const conf=db.conferences.find(x=>x.id_conferencia===data.id_conferencia);conf.estado='EM_PREPARACAO';const c=[...(db.closures||[])].reverse().find(x=>x.id_conferencia===data.id_conferencia);if(c)c.estado='REABERTA';save(db);return{reopened:true};}
     if(action==='closure.generateArtifacts'){return{pasta_drive_url:'#',backup_url:'#',relatorio_final_url:'#'};}
+    if(action==='administration.get'){db.backups=db.backups||[];db.settings=db.settings||initial.settings;db.backupConfig=db.backupConfig||initial.backupConfig;return{settings:db.settings,backup:{...db.backupConfig,trigger_installed:!!db.backupConfig.enabled,trigger_count:db.backupConfig.enabled?1:0},system:{version:'2.6.0',spreadsheet_name:'Base de dados de demonstração',spreadsheet_url:'#',sheets:34,users:db.users.length,active_users:db.users.filter(x=>x.activo).length,active_sessions:1,time_zone:'Africa/Maputo',last_backup:db.backups[0]||null},recent_backups:db.backups.slice(0,8)};}
+    if(action==='administration.saveSettings'){db.settings={...db.settings,...data,version:'2.6.0'};save(db);return db.settings;}
+    if(action==='administration.backups.create'){db.backups=db.backups||[];const b={id_backup:id('BKP'),tipo:data.tipo||'MANUAL',nome_ficheiro:'Backup_CMNM_'+new Date().toISOString().replace(/[:.]/g,'-'),ficheiro_url:'#',estado:'CONCLUIDO',criado_em:new Date().toISOString(),criado_por:'USR-DEMO'};db.backups.unshift(b);save(db);return b;}
+    if(action==='administration.backups.list')return page(db.backups||[]);
+    if(action==='administration.backups.configure'){db.backupConfig={enabled:!!data.enabled,frequency:data.frequency||'SEMANAL',hour:Number(data.hour||3),weekday:data.weekday||'SEGUNDA',folder_id:data.folder_id||'',retention_days:Number(data.retention_days||90)};save(db);return{...db.backupConfig,trigger_installed:db.backupConfig.enabled};}
+    if(action==='administration.diagnostics')return{generated_at:new Date().toISOString(),status:'SAUDAVEL',summary:{errors:0,warnings:0,missing_sheets:0,missing_columns:0,duplicates:0,orphans:0,expired_sessions:0},checks:[{category:'SISTEMA',severity:'OK',item:'Integridade',message:'Não foram detectados problemas.',repairable:false}]};
+    if(action==='administration.repairSchemas')return{repaired:true,actions:[],total:0};
+    if(action==='administration.purgeSessions')return{purged:0};
     if(action==='dashboard.get'){
       const conference=db.conferences.find(x=>x.id_conferencia===data.id_conferencia)||db.conferences[0]||{};
       const regs=db.participants.filter(x=>!data.id_conferencia||x.id_conferencia===data.id_conferencia);
